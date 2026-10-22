@@ -1,5 +1,5 @@
-# Ladywood Environmental Monitor - prototype for Progress Report 3
-# FEBE1004A Design Project 5 (School of Mining Engineering)
+# Ladywood Environmental Monitor - MINN Team 25
+# FEBE1004A Design Project  (School of Mining Engineering)
 #
 # Run with:  streamlit run app.py
 # Data comes from get_data.py (DEFRA UK-AIR and Open-Meteo), saved in /data.
