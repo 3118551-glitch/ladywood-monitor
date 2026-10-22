@@ -165,7 +165,7 @@ def chart_style(fig, height=380):
 # Page header and sidebar
 # ---------------------------------------------------------------------------
 st.title("Ladywood Environmental Monitor")
-st.write("FEBE1004A Design Project 5, School of Mining Engineering. Prototype for Progress Report 3. "
+st.write("FEBE1004A Design Project, MINN Team 25, School of Mining Engineering. Prototype for Progress Report 3. "
          f"Air quality data up to {last_date:%d %B %Y}.")
 
 st.sidebar.header("Settings")
