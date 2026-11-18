@@ -1,11 +1,16 @@
 # Downloads the data the dashboard uses and saves it in the data folder.
 # Run this once before the dashboard (python get_data.py). After that the
-# dashboard works offline.
+# dashboard works offline. The dashboard's "Refresh live data" button calls
+# the same functions.
 #
 # Air quality: DEFRA UK-AIR hourly data for two monitors
 #   BMLD = Birmingham Ladywood (urban background)
 #   BIRR = Birmingham A4540 Roadside
 # Rainfall: Open-Meteo historical weather API (daily total for Ladywood)
+# Elevation: Copernicus GLO-90 DEM, via the Open-Meteo elevation API
+#
+# Every download is checked before it is saved, so a failed or half-finished
+# download never overwrites the data we already have.
 
 import io
 from pathlib import Path
@@ -17,15 +22,35 @@ import requests
 DATA = Path(__file__).parent / "data"   # save next to this script
 
 SITES = ["BMLD", "BIRR"]
-YEARS = [2025, 2026]
+FIRST_YEAR = 2025
 DEFRA_URL = "https://uk-air.defra.gov.uk/datastore/data_files/site_data/{}_{}.csv"
 RAIN_URL = "https://archive-api.open-meteo.com/v1/archive"
+FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
+ELEVATION_URL = "https://api.open-meteo.com/v1/elevation"
+LADYWOOD = {"latitude": 52.4797, "longitude": -1.9180}
 
 COLUMNS = {
     "Nitrogen dioxide": "NO2",
     "PM<sub>2.5</sub> particulate matter (Hourly measured)": "PM2.5",
     "PM<sub>10</sub> particulate matter (Hourly measured)": "PM10",
 }
+
+# points we want the ground level for (same coordinates as in app.py)
+ELEVATION_POINTS = [
+    ("zone", "Ladywood Middleway / Monument Rd", 52.4758, -1.9238),
+    ("zone", "St Marks Crescent / King Edwards Rd", 52.4812, -1.9199),
+    ("zone", "Ledsam St / community hub", 52.4799, -1.9237),
+    ("zone", "Port Loop (brownfield)", 52.4819, -1.9308),
+    ("zone", "Spring Hill / Dudley Rd", 52.4858, -1.9230),
+    ("zone", "Five Ways roundabout", 52.4728, -1.9186),
+    ("zone", "Birmingham Canal (Brindleyplace)", 52.4784, -1.9119),
+    ("zone", "Edgbaston Reservoir (Reservoir Rd)", 52.4775, -1.9330),
+    ("worksite", "Link Road verges", 52.4832, -1.9362),
+    ("worksite", "A4540 Middleway", 52.4800, -1.9258),
+    ("worksite", "Port Loop canal side", 52.4825, -1.9300),
+    ("worksite", "Summerfield Park (just outside the ward)", 52.4837, -1.9408),
+    ("worksite", "Estate car parks", 52.4812, -1.9199),
+]
 
 
 def read_defra(text, site):
@@ -42,34 +67,69 @@ def read_defra(text, site):
 
     out = pd.DataFrame({"time": df["time"], "site": site})
     for long_name, short_name in COLUMNS.items():
-        out[short_name] = pd.to_numeric(df[long_name], errors="coerce")
+        if long_name in df.columns:
+            out[short_name] = pd.to_numeric(df[long_name], errors="coerce")
+        else:
+            out[short_name] = float("nan")
     return out
 
 
-def get_air_quality():
+def fetch_air_quality(timeout=60):
+    # returns the hourly table, or raises an error if nothing could be downloaded
     frames = []
     for site in SITES:
-        for year in YEARS:
-            print("downloading", site, year)
-            r = requests.get(DEFRA_URL.format(site, year), timeout=60)
-            if r.status_code == 200:
+        for year in range(FIRST_YEAR, date.today().year + 1):
+            r = requests.get(DEFRA_URL.format(site, year), timeout=timeout)
+            if r.status_code == 200 and "Date,time" in r.text:
                 frames.append(read_defra(r.text, site))
-    aq = pd.concat(frames).drop_duplicates(["site", "time"])
-    aq.to_csv(DATA / "aq_hourly.csv", index=False)
-    print("saved", len(aq), "air quality rows")
+    if not frames:
+        raise RuntimeError("no air quality files could be downloaded from UK-AIR")
+    aq = pd.concat(frames).drop_duplicates(["site", "time"]).sort_values(["site", "time"])
+    if set(aq["site"]) != set(SITES):
+        raise RuntimeError("one of the two monitors is missing from the download")
+    return aq
 
 
-def get_rainfall():
-    params = {
-        "latitude": 52.4797, "longitude": -1.9180,
-        "start_date": "2025-01-01", "end_date": str(date.today() - timedelta(days=1)),
-        "daily": "precipitation_sum", "timezone": "Europe/London",
-    }
-    r = requests.get(RAIN_URL, params=params, timeout=60)
+def fetch_rainfall(timeout=60):
+    end = date.today() - timedelta(days=1)
+    params = {**LADYWOOD, "daily": "precipitation_sum", "timezone": "Europe/London"}
+    r = requests.get(RAIN_URL, params={**params, "start_date": f"{FIRST_YEAR}-01-01", "end_date": str(end)},
+                     timeout=timeout)
+    r.raise_for_status()
     daily = r.json()["daily"]
-    rain = pd.DataFrame({"date": daily["time"], "rain_mm": daily["precipitation_sum"]}).dropna()
-    rain.to_csv(DATA / "rain_daily.csv", index=False)
-    print("saved", len(rain), "days of rainfall")
+    rain = pd.DataFrame({"date": pd.to_datetime(daily["time"]), "rain_mm": daily["precipitation_sum"]}).dropna()
+
+    # the archive is a few days behind, so top up the last days from the forecast service
+    try:
+        r = requests.get(FORECAST_URL, params={**params, "past_days": 14, "forecast_days": 1}, timeout=timeout)
+        r.raise_for_status()
+        f = r.json()["daily"]
+        recent = pd.DataFrame({"date": pd.to_datetime(f["time"]), "rain_mm": f["precipitation_sum"]}).dropna()
+        recent = recent[recent["date"].dt.date <= end]
+        rain = pd.concat([rain, recent]).drop_duplicates("date", keep="first")
+    except (requests.RequestException, KeyError, ValueError):
+        pass   # the archive alone is fine
+    if rain.empty:
+        raise RuntimeError("Open-Meteo returned no rainfall")
+    return rain.sort_values("date").reset_index(drop=True)
+
+
+def fetch_elevation(timeout=60):
+    r = requests.get(ELEVATION_URL, timeout=timeout, params={
+        "latitude": ",".join(str(p[2]) for p in ELEVATION_POINTS),
+        "longitude": ",".join(str(p[3]) for p in ELEVATION_POINTS)})
+    r.raise_for_status()
+    heights = r.json()["elevation"]
+    return pd.DataFrame([(*p, h) for p, h in zip(ELEVATION_POINTS, heights)],
+                        columns=["kind", "name", "lat", "lon", "elev_m"])
+
+
+def save(df, filename):
+    # write to a temporary file first, then swap it in, so a crash halfway
+    # through never leaves a broken file behind
+    tmp = DATA / (filename + ".tmp")
+    df.to_csv(tmp, index=False)
+    tmp.replace(DATA / filename)
 
 
 # Birmingham City Council Climate Risk and Vulnerability Assessment (CRVA) 2025
@@ -86,8 +146,13 @@ LADYWOOD_LSOAS = ["E01033620", "E01033616", "E01033627", "E01033557", "E01033618
 def crva_query(layer, filename, **params):
     params.update({"outSR": 4326, "f": "geojson"})
     r = requests.get(CRVA_URL.format(layer), params=params, timeout=120)
-    with open(DATA / filename, "w") as f:
-        f.write(r.text)
+    r.raise_for_status()
+    if not r.json().get("features"):          # keep the old file if the server sent nothing useful
+        print("no features returned for", filename, "- kept the old file")
+        return
+    tmp = DATA / (filename + ".tmp")
+    tmp.write_text(r.text)
+    tmp.replace(DATA / filename)
     print("saved", filename)
 
 
@@ -104,6 +169,17 @@ def get_crva():
 
 
 if __name__ == "__main__":
-    get_air_quality()
-    get_rainfall()
-    get_crva()
+    DATA.mkdir(exist_ok=True)
+    for name, fetch, filename in [("air quality", fetch_air_quality, "aq_hourly.csv"),
+                                  ("rainfall", fetch_rainfall, "rain_daily.csv"),
+                                  ("elevation", fetch_elevation, "elevation.csv")]:
+        try:
+            df = fetch()
+            save(df, filename)
+            print("saved", len(df), name, "rows")
+        except Exception as e:
+            print("could not update", name, f"({e}) - kept the old file")
+    try:
+        get_crva()
+    except Exception as e:
+        print("could not update the CRVA layers", f"({e}) - kept the old files")

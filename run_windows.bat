@@ -1,5 +1,5 @@
 @echo off
-REM Ladywood Environmental Monitor - Progress Report 3 prototype
+REM Ladywood Environmental Monitor - MINN Team 25
 REM Double-click this file to start the dashboard.
 cd /d "%~dp0"
 if not exist .venv (
