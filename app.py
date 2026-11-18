@@ -444,35 +444,18 @@ with overview, safe_section("Overview"):
              "Ladywood in the top quarter of the city's wards for climate risk. Flooding and air quality "
              "are the two hazards this dashboard focuses on.")
 
-    left, right = st.columns(2)
-    with left:
-        st.subheader("Community needs")
-        needs = pd.DataFrame([
-            ["10%", "of residents at risk of severe flooding", "Pack p.44"],
-            ["40%", "of the population at risk of extreme heat", "Pack p.16"],
-            ["72%", "of neighbourhoods have under 10% tree cover", "Pack p.16"],
-            ["5 m²", "of green space per person (constituency)", "Pack p.16"],
-            ["6.5 m²", "of green space per person (ward)", "CRVA 2025"],
-            ["6%", "have a respiratory disease (e.g. asthma)", "Pack p.48"],
-            ["57.9%", "of households have no car (England 23.5%)", "Pack p.49"],
-            ["0", "river flood zones in the ward - flood risk is from surface water", "CRVA 2025"],
-        ], columns=["Figure", "Meaning", "Source"])
-        st.dataframe(needs, hide_index=True, width="stretch")
-    with right:
-        st.subheader("Project status")
-        status = pd.DataFrame([
-            ["Air quality data (DEFRA)", "Done"],
-            ["Rainfall data, runoff and sewer overload estimate", "Done"],
-            ["Hazard map with risk zones and ground levels", "Done"],
-            ["Intervention planner and decision matrix", "Done"],
-            ["CRVA 2025 data added (climate risk, flooding)", "Done"],
-            ["Flood ratings checked against the EA map", "Done (Hazard map tab)"],
-            ["Slope stability check for brownfield landforms", "Done (Hazard map tab)"],
-            ["Decision matrix robustness check", "Done (Interventions tab)"],
-            ["Phased rehabilitation (closure-style) plan", "Done (Interventions tab)"],
-            ["Live data refresh with offline fallback", "Done (sidebar)"],
-        ], columns=["Feature", "Status"])
-        st.dataframe(status, hide_index=True, width="stretch")
+    st.subheader("Community needs")
+    needs = pd.DataFrame([
+        ["10%", "of residents at risk of severe flooding", "Pack p.44"],
+        ["40%", "of the population at risk of extreme heat", "Pack p.16"],
+        ["72%", "of neighbourhoods have under 10% tree cover", "Pack p.16"],
+        ["5 m²", "of green space per person (constituency)", "Pack p.16"],
+        ["6.5 m²", "of green space per person (ward)", "CRVA 2025"],
+        ["6%", "have a respiratory disease (e.g. asthma)", "Pack p.48"],
+        ["57.9%", "of households have no car (England 23.5%)", "Pack p.49"],
+        ["0", "river flood zones in the ward - flood risk is from surface water", "CRVA 2025"],
+    ], columns=["Figure", "Meaning", "Source"])
+    st.dataframe(needs, hide_index=True, width="stretch")
 
 # ---------------------------------------------------------------------------
 # Air quality
