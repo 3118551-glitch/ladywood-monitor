@@ -319,7 +319,7 @@ def safe_section(name):
 
 
 def refresh_live_data():
-    # download the latest air quality and rainfall; keep the saved files if anything goes wrong
+    # download the latest Air quality and rainfall; keep the saved files if anything goes wrong
     import get_data
     old_aq, old_rain, _, _ = load_data()
     messages, ok = [], False
@@ -378,8 +378,8 @@ def chart_style(fig, height=380):
 # Page header and sidebar
 # ---------------------------------------------------------------------------
 st.title("Ladywood Environmental Monitor")
-st.write("FEBE1004A Design Project, MINN Team 25, School of Mining Engineering. Final design version. "
-         f"Air quality data up to {day(last_date)}.")
+st.write("FEBE1004A Dashboard Design. MINN Team 25."
+         f"Air quality up to {day(last_date)}.")
 for note in data_notes + map_notes:
     st.warning(note)
 
@@ -387,8 +387,8 @@ st.sidebar.header("Settings")
 pollutant = st.sidebar.selectbox("Pollutant", ["NO2", "PM2.5", "PM10"])
 window = st.sidebar.radio("Rainfall period", ["Last 90 days", "Last 365 days"])
 st.sidebar.divider()
-st.sidebar.subheader("Map layers")
-show_crva = st.sidebar.checkbox("Climate risk by neighbourhood (CRVA)", value=True)
+st.sidebar.subheader("Map Layers")
+show_crva = st.sidebar.checkbox("Risk of climate By neighbourhood (CRVA)", value=True)
 show_flood = st.sidebar.checkbox("Surface water flood extent (EA)", value=True)
 show_ward = st.sidebar.checkbox("Ladywood ward boundary", value=True)
 show_zones = st.sidebar.checkbox("Risk zones", value=True)
@@ -397,24 +397,24 @@ show_monitors = st.sidebar.checkbox("Air quality monitors", value=True)
 map_style = st.sidebar.selectbox("Base map", ["Topographic", "Street map"])
 st.sidebar.divider()
 st.sidebar.subheader("Data")
-st.sidebar.caption(f"Saved data: air quality to {day(last_date, '%d %b %Y')}, "
-                   f"rainfall to {day(rain['date'].max(), '%d %b %Y')}. The dashboard runs from these saved "
-                   "files, so it also works offline.")
+st.sidebar.caption(f"Saved data: Air quality to {day(last_date, '%d %b %Y')}, "
+                   f"rainfall to {day(rain['date'].max(), '%d %b %Y')}. The dashboard runs from theses saved "
+                   "files, operates offline.")
 if st.sidebar.button("Refresh live data", width="stretch"):
-    with st.spinner("Downloading the latest DEFRA and Open-Meteo data..."):
+    with st.spinner("Downlaoding the latest DEFRA and Open-Meteo data..."):
         st.session_state["refresh_result"] = refresh_live_data()
     st.rerun()
 if "refresh_result" in st.session_state:
     ok, message = st.session_state.pop("refresh_result")
     (st.sidebar.success if ok else st.sidebar.warning)(message)
 
-overview, air_tab, rain_tab, map_tab, plan_tab, data_tab = st.tabs(
-    ["Overview", "Air quality", "Rainfall and flooding", "Hazard map", "Interventions", "Data and sources"])
+Overview, air_tab, rain_tab, map_tab, plan_tab, data_tab = st.tabs(
+    ["Overview", "Air quality", "Rainfall and flooding", "Hazard map", "Interventios", "Data and sorces"])
 
 # ---------------------------------------------------------------------------
 # Overview
 # ---------------------------------------------------------------------------
-with overview, safe_section("Overview"):
+with Overview, safe_section("Overview"):
     st.subheader("Key indicators")
     no2 = yearly_mean("Ladywood (background)", "NO2")
     pm25 = yearly_mean("Ladywood (background)", "PM2.5")
@@ -425,7 +425,7 @@ with overview, safe_section("Overview"):
     c2.metric("PM2.5, 12-month mean", num(pm25, unit=" µg/m³"))
     c2.caption("UK target 10, WHO guideline 5")
     c3.metric("Residents at severe flood risk", "10%")
-    c3.caption("Challenge pack p.44")
+    c3.caption("Challenge Pack p.44")
     c4.metric("Rainfall, last 12 months", num(rain_year["rain_mm"].sum() if len(rain_year) else np.nan, ".0f", " mm"))
     c4.caption("Open-Meteo, Ladywood")
 
@@ -439,10 +439,9 @@ with overview, safe_section("Overview"):
     c8.metric("Extra years of life lost", f"+{CRVA['excess_yll']}%")
     c8.caption("Deaths before 75 vs expected, 2012-17")
 
-    st.write("Ladywood meets the UK annual limits for NO2 and PM2.5 but is above the stricter WHO "
-             "guidelines. Birmingham City Council's Climate Risk and Vulnerability Assessment (CRVA) puts "
-             "Ladywood in the top quarter of the city's wards for climate risk. Flooding and air quality "
-             "are the two hazards this dashboard focuses on.")
+    st.write("Even though Ladywood meets the UK’s limits for NO2 and PM2.5, Ladywood still goes beyond the stricter guidelines set by the WHO."
+             "According to Birmingham City Council’s Climate Risk and Vulnerability Assessment, Ladywood is in the 25 percent of Birmingham wards that are most vulnerable to climate change."
+             "To tackle these challenges, this dashboard concentrates on two environmental hazards: flooding and Air quality.")
 
     st.subheader("Community needs")
     needs = pd.DataFrame([
@@ -477,8 +476,8 @@ with air_tab, safe_section("Air quality"):
         fig.add_hline(y=LIMITS[pollutant]["WHO"], line_dash="dot", line_color=RED,
                       annotation_text=f"WHO guideline {LIMITS[pollutant]['WHO']}", annotation_position="top left")
         st.plotly_chart(chart_style(fig), width="stretch")
-        st.caption("Months with less than 75% of hours measured (including the current, unfinished month) are "
-                   "left out, following DEFRA's data capture rule. The 12-month means below use every valid hour.")
+        st.caption("Following DEFRAs data capture rule, any month with than seventy‑five percent of hours recorded—including the current, unfinished month—is excluded."
+                   "The twelve-month averages shown below are calculated using every hour.")
 
     c1, c2 = st.columns(2)
     for col, site in zip([c1, c2], SITE_NAMES.values()):
@@ -509,11 +508,11 @@ with air_tab, safe_section("Air quality"):
              "background, so we use the model to rank our zones, not to report current levels.")
 
     with st.expander("How this works"):
-        st.write("Hourly data comes from two DEFRA monitors: Birmingham Ladywood, an urban background "
-                 "site, and Birmingham A4540 Roadside next to the ring road. The difference between them "
-                 "shows how much pollution comes from traffic. This is the same idea as comparing a "
-                 "background dust monitor with a fence-line monitor at a mine. Peaks in the morning and "
-                 "evening rush hours point to traffic as the main source.")
+        st.write("Hourly data is taken from two DEFRA monitors: one background station in Birmingham Ladywood and"
+                 "the Birmingham A4540 roadside station right beside the ring road. Comparing these two shows"
+                 "the amount of pollution created by traffic—just as comparing a background dust monitor"
+                 "with a perimeter monitor at a mine. Spikes that appear during morning and evening rush hours confirm that "
+                 "traffic is the driver.")
 
 # ---------------------------------------------------------------------------
 # Rainfall and flooding
@@ -623,7 +622,7 @@ with map_tab, safe_section("Hazard map"):
                         "Ground level (m)"]]
                  .sort_values("Risk score", ascending=False), hide_index=True, width="stretch")
     with st.expander("How the risk score works"):
-        st.write("Each zone is rated 1 (low) to 5 (high) for flooding, air quality and land stability, and "
+        st.write("Each zone is rated 1 (low) to 5 (high) for flooding, Air quality and land stability, and "
                  "the risk score is the average. The air rating comes from the modelled NO2 on the CRVA map "
                  "(under 20 = 1, 20-27 = 2, 27-32 = 3, 32-40 = 4, over 40 = 5). The flood rating is our desk "
                  "estimate, checked against the Environment Agency map (see below). The land rating is our own "
@@ -783,7 +782,7 @@ with plan_tab, safe_section("Interventions"):
         leaders = share_first[share_first >= 10].sort_values(ascending=False)
         if len(leaders) > 1:
             st.write("Under random weight changes, " + " and ".join(f"{n} wins {v:.0f}%" for n, v in leaders.items())
-                     + " of the time. The leaders win on different hazards (flooding and air quality), so the "
+                     + " of the time. The leaders win on different hazards (flooding and Air quality), so the "
                        "evidence supports a hybrid scheme: rain gardens for surface water and a tree belt along "
                        "the A4540 for particulates.")
         else:
@@ -815,13 +814,13 @@ with plan_tab, safe_section("Interventions"):
 with data_tab, safe_section("Data and sources"):
     st.subheader("Data used")
     c1, c2, c3 = st.columns(3)
-    c1.metric("Hourly air quality records", f"{len(aq):,}")
+    c1.metric("Hourly Air quality records", f"{len(aq):,}")
     c2.metric("Days of rainfall", f"{len(rain):,}")
     c3.metric("Elevation points", f"{len(elev):,}")
     st.markdown("""
 | Data | Source | Used for |
 |---|---|---|
-| Hourly NO2, PM2.5, PM10 | [DEFRA UK-AIR](https://uk-air.defra.gov.uk/data/) | Indicators, air quality charts |
+| Hourly NO2, PM2.5, PM10 | [DEFRA UK-AIR](https://uk-air.defra.gov.uk/data/) | Indicators, Air quality charts |
 | Daily rainfall | [Open-Meteo historical weather API](https://open-meteo.com/en/docs/historical-weather-api) | Rainfall, runoff and sewer overload |
 | Ground level | [Copernicus GLO-90 elevation model](https://doi.org/10.5270/ESA-c5d3d65), via the [Open-Meteo elevation API](https://open-meteo.com/en/docs/elevation-api) | Hazard map, flood check |
 | Climate risk (CRVA), surface water flood extent, deprivation, population, green space, modelled NO2/PM2.5 | [Birmingham City Council CRVA 2025 map service](https://maps.birmingham.gov.uk/server/rest/services/CRVA/CRVA_2025/MapServer) | Overview, hazard map, zone air ratings, flood check |
@@ -842,19 +841,19 @@ with data_tab, safe_section("Data and sources"):
          "Modelled 25-48 µg/m³ across our zones (older year)", "Agrees"],
         ["PM2.5 is above the WHO guideline everywhere", f"DEFRA: {num(pm25_bg, unit=' µg/m³')}; research report",
          "Modelled 10.2-12.0 µg/m³ at every zone", "Agrees"],
-        ["10% of residents at severe flood risk", "Challenge pack p.44",
+        ["10% of residents at severe flood risk", "Challenge Pack p.44",
          "1% of ward area flooded; 3.2% of buildings touch the extent, 13.8% within 10 m", "Plausible (residents not mapped)"],
         ["Flood risk comes from surface water", "Our assumption",
          "No river flood zone 2 or 3 inside the ward", "Confirmed"],
         ["Our zone flood ratings", "Desk estimates",
          f"{agree} of {len(ZONES)} within one point of the EA map (Hazard map tab)", "Checked; one corrected"],
-        ["5 m² of green space per person", "Challenge pack p.16 (constituency)",
+        ["5 m² of green space per person", "Challenge Pack p.16 (constituency)",
          "6.5 m² per person in the ward", "Broadly agrees; both below WHO 9 m²"],
         ["Ward population 26,900", "Research report",
          "32,377 (mid-2019 estimate)", "Updated - older figure"],
         ["63% of LSOAs in the most deprived 10%", "Research report (constituency)",
          "6 of 16 (38%) in the ward", "Different area - do not mix"],
-        ["72% of neighbourhoods have under 10% tree cover", "Challenge pack p.16",
+        ["72% of neighbourhoods have under 10% tree cover", "Challenge Pack p.16",
          "Woodland is 0.6% of the ward (street trees not counted)", "Cannot check directly"],
         ["Summerfield Park is in Ladywood", "Our worksite list",
          "Just outside the ward boundary", "Corrected"],
@@ -872,5 +871,5 @@ with data_tab, safe_section("Data and sources"):
              "- The slope check is a screening calculation with assumed soil values, not a site investigation.\n"
              "- Worksite locations are proposals, not surveyed sites.")
     d1, d2 = st.columns(2)
-    d1.download_button("Download air quality data (CSV)", aq.to_csv(index=False), "ladywood_air_quality.csv")
+    d1.download_button("Download Air quality data (CSV)", aq.to_csv(index=False), "ladywood_air_quality.csv")
     d2.download_button("Download rainfall data (CSV)", rain.to_csv(index=False), "ladywood_rainfall.csv")
