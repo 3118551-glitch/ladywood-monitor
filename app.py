@@ -77,7 +77,6 @@ ZONES = pd.DataFrame([
     ["Ladywood Middleway / Monument Rd", 52.4758, -1.9238, 3, 2, 38.4, 11.6, 6.69],
     ["St Marks Crescent / King Edwards Rd", 52.4812, -1.9199, 4, 2, 28.9, 10.4, 6.49],
     ["Ledsam St / community hub", 52.4799, -1.9237, 3, 2, 30.3, 10.6, 6.49],
-    ["Port Loop (brownfield)", 52.4819, -1.9308, 4, 5, 27.2, 10.5, 5.98],
     ["Spring Hill / Dudley Rd", 52.4858, -1.9230, 4, 3, 35.9, 11.4, 6.66],
     ["Five Ways roundabout", 52.4728, -1.9186, 3, 1, 47.8, 12.0, 6.85],
     ["Birmingham Canal (Brindleyplace)", 52.4784, -1.9119, 4, 3, 30.5, 10.4, 7.05],
@@ -142,10 +141,6 @@ MONITORS = pd.DataFrame([
     ["Birmingham Ladywood (DEFRA)", 52.481346, -1.918235],
     ["Birmingham A4540 Roadside (DEFRA)", 52.476145, -1.874978],
 ], columns=["Monitor", "lat", "lon"])
-
-# Land stability check: brownfield made ground (infinite-slope screening check)
-SLOPE = {"depth_m": 1.5, "unit_weight": 18.0, "cohesion": 2.0}   # slip depth, kN/m3, kPa
-WATER_UNIT_WEIGHT = 9.81
 
 # Phased rehabilitation plan, set out the way a mine closure plan is
 ROADMAP = [
@@ -646,47 +641,6 @@ with map_tab, safe_section("Hazard map"):
              "ratings agree with the EA map to within one point, so we keep them. Where they disagree we use the "
              "EA rating instead. The Birmingham Canal zone dropped because the EA map does not model canal "
              "embankment failure; that risk is covered by its land rating instead.")
-
-    st.subheader("Land stability check (brownfield landforms)")
-    st.write("Reshaping Port Loop or building a detention basin creates slopes in made ground (loose fill of ash, "
-             "rubble and soil), much like a mine waste dump. Heavy rain soaks the fill and can trigger a shallow "
-             "slide. This screening check shows how planting and drainage make a slope safer.")
-    s1, s2 = st.columns(2)
-    angle = s1.slider("Slope angle (°)", 10.0, 40.0, 26.0, 0.5)
-    saturation = s1.slider("How wet the fill gets after heavy rain (0 = dry, 1 = fully soaked)", 0.0, 1.0, 0.8, 0.05)
-    friction = s2.slider("Friction angle of the fill (°)", 20.0, 38.0, 30.0, 0.5)
-    roots = s2.slider("Extra strength from plant roots (kPa)", 0.0, 15.0, 5.0, 0.5)
-    cases = [("Bare made ground", saturation, 0.0, GREY),
-             ("With planting", saturation, roots, GREEN),
-             ("With planting and a toe drain", saturation * 0.5, roots, NAVY)]
-    for col, (name, sat, root, _) in zip(st.columns(3), cases):
-        fs = factor_of_safety(angle, sat, friction, root)
-        col.metric(f"Factor of safety: {name.lower()}", f"{fs:.2f}")
-        col.caption("Stable (1.5 or more)" if fs >= 1.5 else ("Marginal (1.0 to 1.5)" if fs >= 1.0 else "Fails (below 1.0)"))
-    wetness = np.linspace(0, 1, 21)
-    fig = go.Figure()
-    for name, _, root, colour in cases:
-        drain = 0.5 if "drain" in name else 1.0
-        fig.add_scatter(x=wetness, y=[factor_of_safety(angle, m * drain, friction, root) for m in wetness],
-                        mode="lines", name=name, line=dict(color=colour, width=2.5))
-    fig.add_hline(y=1.5, line_dash="dash", line_color=ORANGE, annotation_text="1.5 target for public slopes",
-                  annotation_position="top left")
-    fig.add_hline(y=1.0, line_dash="dot", line_color=RED, annotation_text="1.0 slope fails",
-                  annotation_position="bottom left")
-    fig.add_vline(x=saturation, line_color=GREY, line_width=1)
-    fig.update_xaxes(title="How wet the fill is (0 = dry, 1 = fully soaked)")
-    fig.update_yaxes(title="Factor of safety")
-    st.plotly_chart(chart_style(fig, 340), width="stretch")
-    with st.expander("How this works"):
-        st.write("This is the infinite-slope check that mining engineers use for waste dumps and that is set out in "
-                 "Duncan, Wright and Brandon (2014). It compares the strength of the fill (friction, cohesion and "
-                 "roots) with the weight pulling it downhill. Water in the fill pushes the grains apart and cuts "
-                 "the friction, which is why wet slopes fail. A factor of safety below 1 means failure; 1.5 or more "
-                 "is the usual target for permanent slopes the public can walk on (Read and Stacey, 2009).")
-        st.write(f"Fixed values: slip surface {SLOPE['depth_m']} m deep, fill unit weight {SLOPE['unit_weight']:.0f} kN/m³, "
-                 f"cohesion {SLOPE['cohesion']:.0f} kPa. A toe drain is assumed to halve how wet the fill gets. "
-                 "This is a screening check only: a real design needs boreholes, laboratory tests and a full "
-                 "slope stability analysis.")
 
 # ---------------------------------------------------------------------------
 # Interventions: planner and decision matrix
