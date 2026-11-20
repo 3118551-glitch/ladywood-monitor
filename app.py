@@ -448,11 +448,11 @@ with Overview, safe_section("Overview"):
         ["10%", "of residents at risk of severe flooding", "Pack p.44"],
         ["40%", "of the population at risk of extreme heat", "Pack p.16"],
         ["72%", "of neighbourhoods have under 10% tree cover", "Pack p.16"],
-        ["5 m²", "of green space per person (constituency)", "Pack p.16"],
+        ["5 m²", "of green space per person", "Pack p.16"],
         ["6.5 m²", "of green space per person (ward)", "CRVA 2025"],
-        ["6%", "have a respiratory disease (e.g. asthma)", "Pack p.48"],
-        ["57.9%", "of households have no car (England 23.5%)", "Pack p.49"],
-        ["0", "river flood zones in the ward - flood risk is from surface water", "CRVA 2025"],
+        ["6%", "have a respiratory disease(e.g. asthma)", "Pack p.48"],
+        ["57.9%", "of households have  no car(England 23.5%)", "Pack p.49"],
+        ["0", "river flood zones in the ward- flood risk is from surface water", "CRVA 2025"],
     ], columns=["Figure", "Meaning", "Source"])
     st.dataframe(needs, hide_index=True, width="stretch")
 
@@ -499,7 +499,7 @@ with air_tab, safe_section("Air quality"):
     compare = pd.DataFrame([
         ["Ladywood monitor", yearly_mean("Ladywood (background)", "NO2"), 30.2,
          yearly_mean("Ladywood (background)", "PM2.5"), 10.5],
-        ["A4540 Roadside monitor", yearly_mean("A4540 Roadside", "NO2"), 47.5,
+        ["A450 Roadside monitor", yearly_mean("A4540 Roadside", "NO2"), 47.5,
          yearly_mean("A4540 Roadside", "PM2.5"), 12.2],
     ], columns=["Location", "NO2 measured", "NO2 modelled", "PM2.5 measured", "PM2.5 modelled"]).round(1)
     st.dataframe(compare, hide_index=True, width="stretch")
@@ -529,8 +529,8 @@ with rain_tab, safe_section("Rainfall and flooding"):
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Total rainfall", num(recent["rain_mm"].sum() if len(recent) else np.nan, ".0f", " mm"))
     c2.metric("Wettest day", num(recent["rain_mm"].max(), ".1f", " mm"))
-    c3.metric("Days over 10 mm", int((recent["rain_mm"] > 10).sum()))
-    c4.metric("Days sewers likely overloaded", int(recent["overloaded"].sum()),
+    c3.metric("Days over 10mm", int((recent["rain_mm"] > 10).sum()))
+    c4.metric("Days sewers likely overload", int(recent["overloaded"].sum()),
               help="Estimated from the drain load model below; see 'How this works'.")
 
     if recent.empty:
@@ -549,17 +549,16 @@ with rain_tab, safe_section("Rainfall and flooding"):
         st.plotly_chart(chart_style(fig2, 300), width="stretch")
 
     with st.expander("How this works"):
-        st.write(f"Runoff uses the rational method: runoff = C × rainfall × area, with C = {RUNOFF_COEFF} "
-                 f"for a mostly sealed estate and a {CATCHMENT_HA} ha catchment. Both values are estimates. "
-                 "Ladywood has combined sewers, so on heavy-rain days this water mixes with sewage and can "
-                 "overflow into the canals. Holding water back at the surface is the same idea as stormwater "
-                 "control at a mine.")
-        st.write(f"Sewer overload check: the sewers are treated like a storage dam that drains slowly. Each day they "
-                 f"hold {DRAIN_CARRY_OVER:.0%} of yesterday's water plus today's runoff. When this load passes "
-                 f"{DRAIN_CAPACITY_MM} mm over the catchment we count the day as overloaded. The {DRAIN_CAPACITY_MM} mm "
-                 "level was set so that this happens on about 2% of days, which fits the reported flooding and "
-                 "storm overflow spills. It is a screening estimate, not a sewer model: a real design needs Severn "
-                 "Trent's network data and hourly rainfall.")
+        st.write(f"Runoff is estimated with the method, where runoff equals C times rainfall times area. The runoff coefficient is set to C = {RUNOFF_COEFF}."
+                 f"We see this applies to a paved site with a {CATCHMENT_HA} ha catchment area and both figures are approximate. "
+                 "We see that because Ladywood has combined sewers, heavy rain can mix runoff with sewage and cause overflows into the canals."
+                 "We also realize that slowing and holding water on the surface works on the principle as stormwater management at a mine.")
+        st.write(f"Sewer overload check: the sewers are modeled like a storage tank that drains slowly over time. Everyday they "
+                 f"hold {DRAIN_CARRY_OVER:.0%} of the previous day's water plus today's runoff. When this load passes "
+                 f"{DRAIN_CAPACITY_MM} mm over the catchment we count the day as overload. The {DRAIN_CAPACITY_MM} mm "
+                 " threshold is set to activate on two percent of days, which matches the local flooding reports and"
+                 "storm overflow spills. Note that high-level screening estimate is a high-level screening estimate of a full sewer model;"
+                 "a detailed design would need Severn Trents network data and hourly rainfall records.")
 
 # ---------------------------------------------------------------------------
 # Hazard map
@@ -823,7 +822,7 @@ with data_tab, safe_section("Data and sources"):
 | Hourly NO2, PM2.5, PM10 | [DEFRA UK-AIR](https://uk-air.defra.gov.uk/data/) | Indicators, Air quality charts |
 | Daily rainfall | [Open-Meteo historical weather API](https://open-meteo.com/en/docs/historical-weather-api) | Rainfall, runoff and sewer overload |
 | Ground level | [Copernicus GLO-90 elevation model](https://doi.org/10.5270/ESA-c5d3d65), via the [Open-Meteo elevation API](https://open-meteo.com/en/docs/elevation-api) | Hazard map, flood check |
-| Climate risk (CRVA), surface water flood extent, deprivation, population, green space, modelled NO2/PM2.5 | [Birmingham City Council CRVA 2025 map service](https://maps.birmingham.gov.uk/server/rest/services/CRVA/CRVA_2025/MapServer) | Overview, hazard map, zone air ratings, flood check |
+| Climate risk (CRVA), surface water flood extent, deprivation, population, green space, modelled NO2/PM2.5 | [Birmingham City Council CRVA 2025 map service](https://maps.birmingham.gov.uk/server/rest/services/CRVA/CRVA_2025/MapServer) | Overview, Hazard map, zone air ratings, flood check |
 | Community figures | [Engineering for People Design Challenge 2025-26](https://www.ewb-uk.org/upskill/design-challenges/engineering-for-people-design-challenge/) | Community needs |
 | Unit costs and storage | CIRIA C753 *The SuDS Manual*, via our research report | Planner |
 | Slope stability method and targets | Duncan, Wright and Brandon (2014) *Soil strength and slope stability*; Read and Stacey (2009) | Land stability check |
